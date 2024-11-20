@@ -34,51 +34,53 @@ class Patient:
     discharge_date: datetime = None
 
 class DatabaseManager:
-    def __init__(self, db_path="hospital.db"):
+    def __init__(self, db_path=":memory:"):
         self.db_path = db_path
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.setup_database()
     
     def get_connection(self):
+        if self.db_path == ":memory:":
+            return self.conn
         return sqlite3.connect(self.db_path)
     
     def setup_database(self):
         """Create necessary tables if they don't exist"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Drop existing tables if they exist
-            cursor.execute('DROP TABLE IF EXISTS los_tracking')
-            cursor.execute('DROP TABLE IF EXISTS patients')
-            
-            # Create patients table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS patients (
-                    id TEXT PRIMARY KEY,
-                    admission_date TEXT,
-                    predicted_los FLOAT,
-                    department TEXT,
-                    diagnosis TEXT,
-                    age INTEGER,
-                    gender TEXT,
-                    insurance TEXT,
-                    severity INTEGER,
-                    status TEXT,
-                    discharge_date TEXT NULL
-                )
-            ''')
-            
-            # Create tracking table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS los_tracking (
-                    patient_id TEXT,
-                    tracking_date TEXT,
-                    current_los FLOAT,
-                    vital_signs TEXT,
-                    FOREIGN KEY (patient_id) REFERENCES patients(id)
-                )
-            ''')
-            
-            conn.commit()
+        cursor = self.conn.cursor()
+        
+        # Drop existing tables if they exist
+        cursor.execute('DROP TABLE IF EXISTS los_tracking')
+        cursor.execute('DROP TABLE IF EXISTS patients')
+        
+        # Create patients table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS patients (
+                id TEXT PRIMARY KEY,
+                admission_date TEXT,
+                predicted_los FLOAT,
+                department TEXT,
+                diagnosis TEXT,
+                age INTEGER,
+                gender TEXT,
+                insurance TEXT,
+                severity INTEGER,
+                status TEXT,
+                discharge_date TEXT NULL
+            )
+        ''')
+        
+        # Create tracking table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS los_tracking (
+                patient_id TEXT,
+                tracking_date TEXT,
+                current_los FLOAT,
+                vital_signs TEXT,
+                FOREIGN KEY (patient_id) REFERENCES patients(id)
+            )
+        ''')
+        
+        self.conn.commit()
 
     def add_patient(self, patient: Patient):
         """Add a new patient to the database"""
